@@ -60,7 +60,7 @@ function App() {
   // }, []);
 
   return (
-    <div className="w-80 p-4 bg-white rounded-lg shadow-lg">
+    <div className="w-96 p-4 bg-white rounded-lg shadow-lg">
       <h2 className="text-lg font-bold text-gray-800">Recommended Products</h2>
 
       {sampleProducts.length > 0 ? (
