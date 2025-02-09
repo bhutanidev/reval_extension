@@ -1,87 +1,73 @@
-// import { useEffect, useState } from "react";
-
-interface Product {
-  imageUrl: string;
-  name: string;
-  price: string;
-  productUrl: string;
-}
-
-const sampleProducts:Product[] = [
-  {
-    imageUrl: "https://via.placeholder.com/150",
-    name: "Wireless Bluetooth Headphones",
-    price: "₹2,999",
-    productUrl: "https://example.com/product/headphones"
-  },
-  {
-    imageUrl: "https://via.placeholder.com/150",
-    name: "Smart Fitness Band",
-    price: "₹1,499",
-    productUrl: "https://example.com/product/fitness-band"
-  },
-  {
-    imageUrl: "https://via.placeholder.com/150",
-    name: "4K Smart LED TV",
-    price: "₹45,999",
-    productUrl: "https://example.com/product/smart-tv"
-  },
-  {
-    imageUrl: "https://via.placeholder.com/150",
-    name: "Gaming Laptop - RTX 4060",
-    price: "₹89,999",
-    productUrl: "https://example.com/product/gaming-laptop"
-  },
-  {
-    imageUrl: "https://via.placeholder.com/150",
-    name: "Noise-Cancelling Earbuds",
-    price: "₹3,499",
-    productUrl: "https://example.com/product/earbuds"
-  }
-];
-
-// Store sample data in Chrome Storage (for testing)
-chrome.storage.local.set({ productDetails: sampleProducts }, () => {
-  console.log("Sample product data stored successfully!");
-});
-
+import { useEffect, useState } from "react";
 
 function App() {
-  // const [products, setProducts] = useState<Product[]>([]);
+  const [product, setProduct] = useState<{ imageUrl: string; name: string; price: string; productUrl: string } | null>(null);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
 
-  // useEffect(() => {
-  //   // Fetch stored product details from local storage
-  //   chrome.storage.local.get(["productDetails"], (result) => {
-  //     if (result.productDetails) {
-  //       setProducts(result.productDetails);
-  //       console.log("Loaded Products:", result.productDetails);
-  //     }
-  //   });
-  // }, []);
+  // Load product details and recommendations from Chrome storage when popup opens
+  useEffect(() => {
+    chrome.storage.local.get(["productDetails", "recommendations"], (result) => {
+      if (result.productDetails) {
+        setProduct(result.productDetails);
+      }
+      if (result.recommendations) {
+        // Map API response to expected structure
+        const formattedRecommendations = result.recommendations.map((item: any) => ({
+          imageUrl: item.img_link, // Correct key mapping
+          name: item.product_name,
+          price: item.price,
+          productUrl: `https://www.amazon.com/dp/${item.product_id}`, // Create proper Amazon URL
+        }));
+        setRecommendations(formattedRecommendations);
+      }
+    });
+
+    // Listen for storage changes and update the UI automatically
+    chrome.storage.onChanged.addListener((changes) => {
+      if (changes.productDetails?.newValue) {
+        setProduct(changes.productDetails.newValue);
+      }
+      if (changes.recommendations?.newValue) {
+        const formattedRecommendations = changes.recommendations.newValue.map((item: any) => ({
+          imageUrl: item.img_link,
+          name: item.product_name,
+          price: item.price,
+          productUrl: `https://www.amazon.com/dp/${item.product_id}`,
+        }));
+        setRecommendations(formattedRecommendations);
+      }
+    });
+  }, []);
 
   return (
-    <div className="w-96 p-4 bg-white rounded-lg shadow-lg">
-      <h2 className="text-lg font-bold text-gray-800">Recommended Products</h2>
+    <div className="w-[350px] bg-white p-4 rounded-lg shadow-lg">
+      <h2 className="text-lg font-bold">Amazon Product Details</h2>
 
-      {sampleProducts.length > 0 ? (
-        <div className="grid gap-4 mt-3">
-          {sampleProducts.map((product, index) => (
-            <div key={index} className="border p-3 rounded-lg shadow-md bg-gray-100">
-              <img src={product.imageUrl} alt={product.name} className="w-full h-32 object-cover rounded-md" />
-              <h3 className="text-md font-semibold mt-2">{product.name}</h3>
-              <p className="text-sm text-gray-600">{product.price}</p>
-              <a
-                href={product.productUrl}
-                target="_blank"
-                className="mt-2 block bg-blue-500 text-white text-center py-1 rounded-md hover:bg-blue-600"
-              >
-                View Product
-              </a>
-            </div>
-          ))}
+      {/* Display Product Details */}
+      {product ? (
+        <div className="mt-3">
         </div>
       ) : (
-        <p className="text-gray-600 mt-2">No product details found.</p>
+        <p></p>
+      )}
+
+      {/* Display Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-md font-semibold">Similar Products:</h3>
+          <ul>
+            {recommendations.map((item, index) => (
+              <li key={index} className="mt-2 p-2 border rounded flex items-center space-x-3">
+                <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                <div>
+                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-sm text-green-600">{item.price}</p>
+                  {/* <a href={item.productUrl} target="_blank" className="text-blue-500 text-xs">View Product</a> */}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

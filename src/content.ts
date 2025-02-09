@@ -11,16 +11,12 @@ const getProductDetails = () => {
     productUrl: window.location.href
   };
 };
-
-// Function to inject the "Check for Similar Products" button near the product title
 const injectButton = () => {
-  // Check if the button already exists
   if (document.getElementById("checkSimilarBtn")) return;
 
   const titleElement = document.querySelector("#titleSection") || document.querySelector("#productTitle");
   if (!titleElement) return;
 
-  // Create button
   const button = document.createElement("button");
   button.id = "checkSimilarBtn";
   button.innerText = "Check for Similar Products";
@@ -37,22 +33,39 @@ const injectButton = () => {
   `;
 
   // Button Click Event
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
     const productDetails = getProductDetails();
-    
-    chrome.storage.local.set({ productDetails: [productDetails] }, () => {
-      console.log("Product details saved!", productDetails);
 
-      // Automatically open the extension popup
-      chrome.runtime.sendMessage({ type: "OPEN_POPUP" });
-    });
+    try {
+      // Call API to get recommendations
+      const response = await fetch("https://extension-hacktu.onrender.com/recommend_image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ img_url: productDetails.imageUrl })
+      });
+
+      const data = await response.json();
+
+      // Store product details & recommendations in storage
+      chrome.storage.local.set({ 
+        productDetails: productDetails, 
+        recommendations: data.recommendations 
+      }, () => {
+        console.log("Data saved in storage!", { productDetails, recommendations: data.recommendations });
+
+        // Ask background script to open popup
+        chrome.runtime.sendMessage({ type: "OPEN_POPUP" });
+      });
+
+    } catch (error) {
+      console.error("API Error:", error);
+    }
   });
 
-  // Insert the button next to the product title
   titleElement.appendChild(button);
 };
 
-// Run the script only on Amazon product pages
+// Inject button only on Amazon product pages
 if (window.location.href.includes("amazon.")) {
   injectButton();
 }
